@@ -94,8 +94,16 @@ build_windows() {
     # Clean up NSIS metadata
     rm -rf "${extract_dir}/\$"* "${extract_dir}/Uninstall"* "$installer"
 
+    # Locate asar dynamically
+    local asar_target
+    asar_target=$(find "$extract_dir" -type f -name "app.asar" | head -n 1)
+    if [ -z "$asar_target" ]; then
+        echo "  [Error] app.asar not found in extracted Windows package!"
+        exit 1
+    fi
+
     # Patch asar
-    patch_asar "${extract_dir}/resources/app.asar"
+    patch_asar "$asar_target"
 
     # Zip package
     echo "  Archiving ${pkg_name}.zip..."
@@ -123,15 +131,24 @@ build_linux() {
     curl -f -sSL "${BASE_URL}/${subpath}" -o "$tarball"
 
     echo "  Extracting tarball..."
-    tar -xzf "$tarball" -C "$extract_dir"
+    tar -xzf "$tarball" -C "$extract_dir" --strip-components=1
     rm -f "$tarball"
 
-    # Patch asar
-    patch_asar "${extract_dir}/resources/app.asar"
+    # Locate asar dynamically
+    local asar_target
+    asar_target=$(find "$extract_dir" -type f -name "app.asar" | head -n 1)
+    if [ -z "$asar_target" ]; then
+        echo "  [Error] app.asar not found in extracted Linux package!"
+        exit 1
+    fi
 
-    # Ensure executable permissions
-    if [ -f "${extract_dir}/Antigravity" ]; then
-        chmod +x "${extract_dir}/Antigravity"
+    # Patch asar
+    patch_asar "$asar_target"
+
+    # Ensure executable permissions and convenient symlink
+    find "$extract_dir" -maxdepth 2 -type f -name "antigravity*" -exec chmod +x {} + 2>/dev/null || true
+    if [ -f "${extract_dir}/antigravity" ] && [ ! -f "${extract_dir}/Antigravity" ]; then
+        (cd "$extract_dir" && ln -s antigravity Antigravity)
     fi
 
     # Tar package
@@ -163,11 +180,19 @@ build_macos() {
     unzip -q "$mac_zip" -d "$extract_dir"
     rm -f "$mac_zip"
 
+    # Locate asar dynamically
+    local asar_target
+    asar_target=$(find "$extract_dir" -type f -name "app.asar" | head -n 1)
+    if [ -z "$asar_target" ]; then
+        echo "  [Error] app.asar not found in extracted macOS package!"
+        exit 1
+    fi
+
     # Patch asar
-    patch_asar "${extract_dir}/Antigravity.app/Contents/Resources/app.asar"
+    patch_asar "$asar_target"
 
     # Ensure binary is executable
-    chmod -R +x "${extract_dir}/Antigravity.app/Contents/MacOS" 2>/dev/null || true
+    find "$extract_dir" -path "*/Contents/MacOS/*" -exec chmod +x {} + 2>/dev/null || true
 
     # Zip package
     echo "  Archiving ${pkg_name}.zip..."
