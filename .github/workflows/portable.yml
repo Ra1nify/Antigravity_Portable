@@ -85,7 +85,7 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
-      # Publish to GitHub Releases if artifacts were successfully generated and upload succeeded
+      # Publish to GitHub Releases with strict Win -> Linux -> macOS ordering
       - name: Publish GitHub Release
         if: steps.version_check.outputs.should_build == 'true'
         env:
@@ -94,7 +94,18 @@ jobs:
           VERSION="${{ steps.official.outputs.official_version }}"
           CHANGELOG_URL="https://antigravity.google/docs/changelog#rel-hub-${VERSION}"
           
-          CHECKSUMS=$(cd dist && sha256sum * | sort)
+          # Strictly ordered target packages: Windows -> Linux -> macOS
+          ORDERED_PACKAGES=(
+            "Antigravity-Portable-v${VERSION}-windows-x64.zip"
+            "Antigravity-Portable-v${VERSION}-windows-arm64.zip"
+            "Antigravity-Portable-v${VERSION}-linux-x64.tar.gz"
+            "Antigravity-Portable-v${VERSION}-linux-arm64.tar.gz"
+            "Antigravity-Portable-v${VERSION}-macOS-arm64.zip"
+            "Antigravity-Portable-v${VERSION}-macOS-x64.zip"
+          )
+
+          CHECKSUMS=$(cd dist && sha256sum "${ORDERED_PACKAGES[@]}")
+          UPLOAD_FILES=("${ORDERED_PACKAGES[@]/#/dist/}")
 
           cat << EOF > release_body.md
           ## Google Antigravity Portable (${VERSION})
@@ -122,12 +133,27 @@ jobs:
 
           if gh release view "$VERSION" >/dev/null 2>&1; then
             echo "Release $VERSION already exists. Updating release assets..."
-            gh release upload "$VERSION" dist/* --clobber
+            gh release upload "$VERSION" "${UPLOAD_FILES[@]}" --clobber
             gh release edit "$VERSION" --notes-file release_body.md
           else
             echo "Creating new release $VERSION..."
-            gh release create "$VERSION" dist/* \
+            gh release create "$VERSION" "${UPLOAD_FILES[@]}" \
               --title "$VERSION" \
               --notes-file release_body.md \
               --latest
+          fi
+
+      # Self-updating README: update direct download links to the newly published version
+      - name: Update README Download Links
+        if: steps.version_check.outputs.should_build == 'true'
+        run: |
+          python3 ./scripts/update_readme.py "${{ steps.official.outputs.official_version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          if ! git diff --staged --quiet; then
+            git commit -m "docs: update direct download links for v${{ steps.official.outputs.official_version }} [skip ci]"
+            git push
+          else
+            echo "README.md is already up to date."
           fi

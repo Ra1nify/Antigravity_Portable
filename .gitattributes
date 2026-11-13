@@ -4,6 +4,7 @@
 # Explicitly enforce LF line endings for shell scripts and CI workflows
 *.sh text eol=lf
 *.bash text eol=lf
+*.py text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
 *.js text eol=lf
