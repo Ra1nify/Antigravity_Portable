@@ -6,7 +6,6 @@ For enhanced verison, check [Gravityless](https://github.com/Ra1nify/Gravityless
 
 ## Download
 
-<!-- DOWNLOAD_TABLE_START -->
 <table align="center" width="100%">
   <thead>
     <tr>
@@ -16,12 +15,10 @@ For enhanced verison, check [Gravityless](https://github.com/Ra1nify/Gravityless
         </a>
       </th>
       <th align="center" width="33%">
-        <img src="https://cdn.simpleicons.org/linux" height="28" alt="Linux" /><br />
-        <b>Linux</b>
+        <img src="https://cdn.simpleicons.org/linux" height="67" alt="Linux" /><br />
       </th>
       <th align="center" width="33%">
-        <img src="https://cdn.simpleicons.org/apple" height="28" alt="macOS" /><br />
-        <b>macOS</b>
+        <img src="https://cdn.simpleicons.org/apple" height="67" alt="macOS" /><br />
       </th>
     </tr>
   </thead>
@@ -45,9 +42,6 @@ For enhanced verison, check [Gravityless](https://github.com/Ra1nify/Gravityless
     </tr>
   </tbody>
 </table>
-
-> \* *Windows icon links to [simple-icons#11236](https://github.com/simple-icons/simple-icons/issues/11236) in honor of Microsoft Legal.*
-<!-- DOWNLOAD_TABLE_END -->
 
 ## License
 
