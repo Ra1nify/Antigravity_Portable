@@ -23,21 +23,26 @@ jobs:
       - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y p7zip-full curl jq zip tar
+          sudo apt-get install -y p7zip-full curl jq zip tar python3
 
       - name: Fetch Official Manifest
         id: official
         run: |
-          MANIFEST_URL="https://antigravity-hub-auto-updater-974169037036.us-central1.run.app/manifest/latest-x64-win.yml"
-          MANIFEST=$(curl -sSL "$MANIFEST_URL")
-          OFFICIAL_VER=$(echo "$MANIFEST" | grep -E '^version:' | awk '{print $2}' | tr -d '\r')
-          DOWNLOAD_URL=$(echo "$MANIFEST" | grep -E 'url:' | head -n 1 | awk '{print $2}' | tr -d '\r')
-          BASE_URL=$(echo "$DOWNLOAD_URL" | sed -E 's|/[^/]+/[^/]+$||')
+          python3 -c "
+          import urllib.request, re, os
+          url = 'https://antigravity-hub-auto-updater-974169037036.us-central1.run.app/manifest/latest-x64-win.yml'
+          req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+          with urllib.request.urlopen(req) as resp:
+              data = resp.read().decode('utf-8')
+          ver = re.search(r'version:\s*([^\r\n\s]+)', data).group(1)
+          base = re.search(r'https://storage\.googleapis\.com/antigravity-public/antigravity-hub/[^/\s]+', data).group(0)
           
-          echo "official_version=$OFFICIAL_VER" >> "$GITHUB_OUTPUT"
-          echo "base_url=$BASE_URL" >> "$GITHUB_OUTPUT"
-          echo "Official Latest Version: $OFFICIAL_VER"
-          echo "Upstream Base URL: $BASE_URL"
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f'official_version={ver}\n')
+              f.write(f'base_url={base}\n')
+          print(f'Detected Version: {ver}')
+          print(f'Detected Base URL: {base}')
+          "
 
       - name: Version Check Against Releases
         id: version_check
@@ -71,6 +76,16 @@ jobs:
           chmod +x ./scripts/build.sh
           ./scripts/build.sh "${{ steps.official.outputs.official_version }}" "${{ steps.official.outputs.base_url }}"
 
+      # Fail-Close: Persist built packages to GitHub Actions Workflow Run Artifacts first
+      - name: Upload Build Artifacts to Actions Run
+        if: steps.version_check.outputs.should_build == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Antigravity-Portable-${{ steps.official.outputs.official_version }}
+          path: dist/*
+          if-no-files-found: error
+
+      # Publish to GitHub Releases if artifacts were successfully generated and upload succeeded
       - name: Publish GitHub Release
         if: steps.version_check.outputs.should_build == 'true'
         env:

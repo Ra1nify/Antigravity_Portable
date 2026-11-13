@@ -4,8 +4,11 @@ set -eo pipefail
 VERSION="$1"
 BASE_URL="$2"
 
-if [ -z "$VERSION" ] || [ -z "$BASE_URL" ]; then
+if [ -z "$VERSION" ] || [ -z "$BASE_URL" ] || [ "$BASE_URL" = "url:" ]; then
+    echo "Error: Invalid parameters!"
     echo "Usage: ./scripts/build.sh <VERSION> <BASE_URL>"
+    echo "Received VERSION: '$VERSION'"
+    echo "Received BASE_URL: '$BASE_URL'"
     exit 1
 fi
 
@@ -19,6 +22,7 @@ HOOK_FILE="${SCRIPT_DIR}/portable_hook.js"
 DIST_DIR="$(pwd)/dist"
 WORK_DIR="$(pwd)/work"
 
+rm -rf "$DIST_DIR" "$WORK_DIR"
 mkdir -p "$DIST_DIR" "$WORK_DIR"
 
 if [ ! -f "$HOOK_FILE" ]; then
@@ -32,7 +36,7 @@ patch_asar() {
     
     if [ ! -f "$asar_file" ]; then
         echo "  [Error] asar file not found: $asar_file"
-        return 1
+        exit 1
     fi
 
     rm -rf "${WORK_DIR}/asar_extracted"
@@ -41,7 +45,7 @@ patch_asar() {
     local target_js="${WORK_DIR}/asar_extracted/dist/main.js"
     if [ ! -f "$target_js" ]; then
         echo "  [Error] dist/main.js not found inside $asar_file"
-        return 1
+        exit 1
     fi
 
     cat "$HOOK_FILE" "$target_js" > "${target_js}.tmp"
@@ -67,11 +71,8 @@ build_windows() {
     rm -rf "$extract_dir"
     mkdir -p "$extract_dir"
 
-    echo "  Downloading official installer..."
-    if ! curl -f -sSL "${BASE_URL}/${subpath}" -o "$installer"; then
-        echo "  [Warning] Failed to download Windows ${arch}, skipping."
-        return 0
-    fi
+    echo "  Downloading official installer: ${BASE_URL}/${subpath}"
+    curl -f -sSL "${BASE_URL}/${subpath}" -o "$installer"
 
     echo "  Unpacking NSIS installer..."
     mkdir -p "${extract_dir}/tmp"
@@ -118,11 +119,8 @@ build_linux() {
     rm -rf "$extract_dir"
     mkdir -p "$extract_dir"
 
-    echo "  Downloading official tarball..."
-    if ! curl -f -sSL "${BASE_URL}/${subpath}" -o "$tarball"; then
-        echo "  [Warning] Failed to download Linux ${arch}, skipping."
-        return 0
-    fi
+    echo "  Downloading official tarball: ${BASE_URL}/${subpath}"
+    curl -f -sSL "${BASE_URL}/${subpath}" -o "$tarball"
 
     echo "  Extracting tarball..."
     tar -xzf "$tarball" -C "$extract_dir"
@@ -158,11 +156,8 @@ build_macos() {
     rm -rf "$extract_dir"
     mkdir -p "$extract_dir"
 
-    echo "  Downloading official zip..."
-    if ! curl -f -sSL "${BASE_URL}/${subpath}" -o "$mac_zip"; then
-        echo "  [Warning] Failed to download macOS ${arch}, skipping."
-        return 0
-    fi
+    echo "  Downloading official zip: ${BASE_URL}/${subpath}"
+    curl -f -sSL "${BASE_URL}/${subpath}" -o "$mac_zip"
 
     echo "  Unpacking zip..."
     unzip -q "$mac_zip" -d "$extract_dir"
@@ -192,6 +187,12 @@ build_macos "arm64"   "darwin-arm/Antigravity.zip"
 build_macos "x64"     "darwin-x64/Antigravity.zip"
 
 rm -rf "$WORK_DIR"
+
+# Strict check that dist has files
+if [ -z "$(ls -A "$DIST_DIR" 2>/dev/null)" ]; then
+    echo "Error: Build failed! dist/ directory is empty."
+    exit 1
+fi
 
 echo "=============================================="
 echo " Build Completed Successfully! Artifacts:"
