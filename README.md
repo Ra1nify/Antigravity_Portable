@@ -6,6 +6,7 @@ For enhanced verison, check [Gravityless](https://github.com/Ra1nify/Gravityless
 
 ## Download
 
+<!-- DOWNLOAD_TABLE_START -->
 <table align="center" width="100%">
   <thead>
     <tr>
@@ -42,6 +43,9 @@ For enhanced verison, check [Gravityless](https://github.com/Ra1nify/Gravityless
     </tr>
   </tbody>
 </table>
+
+> \* *Windows icon links to [simple-icons#11236](https://github.com/simple-icons/simple-icons/issues/11236) in honor of Microsoft Legal.*
+<!-- DOWNLOAD_TABLE_END -->
 
 ## License
 

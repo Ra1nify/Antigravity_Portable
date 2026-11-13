@@ -21,12 +21,10 @@ def update_readme(version: str, readme_path: str = "README.md"):
         </a>
       </th>
       <th align="center" width="33%">
-        <img src="https://cdn.simpleicons.org/linux" height="28" alt="Linux" /><br />
-        <b>Linux</b>
+        <img src="https://cdn.simpleicons.org/linux" height="67" alt="Linux" /><br />
       </th>
       <th align="center" width="33%">
-        <img src="https://cdn.simpleicons.org/apple" height="28" alt="macOS" /><br />
-        <b>macOS</b>
+        <img src="https://cdn.simpleicons.org/apple" height="67" alt="macOS" /><br />
       </th>
     </tr>
   </thead>
@@ -54,15 +52,29 @@ def update_readme(version: str, readme_path: str = "README.md"):
 > \\* *Windows icon links to [simple-icons#11236](https://github.com/simple-icons/simple-icons/issues/11236) in honor of Microsoft Legal.*
 <!-- DOWNLOAD_TABLE_END -->"""
 
-    pattern = r"<!-- DOWNLOAD_TABLE_START -->.*?<!-- DOWNLOAD_TABLE_END -->"
-    if re.search(pattern, content, flags=re.DOTALL):
-        updated = re.sub(pattern, table_html.strip(), content, flags=re.DOTALL)
-        with open(readme_path, "w", encoding="utf-8") as f:
-            f.write(updated)
-        print(f"Successfully updated {readme_path} download table to v{version}")
+    # 1. Primary match: by anchor comments
+    anchor_pattern = r"<!-- DOWNLOAD_TABLE_START -->.*?<!-- DOWNLOAD_TABLE_END -->"
+    table_pattern = r"<table align=[\"']center[\"'] width=[\"']100%[\"']>.*?</table>"
+    header_pattern = r"(## Download\s*\n+)"
+
+    if re.search(anchor_pattern, content, flags=re.DOTALL):
+        updated = re.sub(anchor_pattern, table_html.strip(), content, flags=re.DOTALL)
+        print(f"Matched anchor tags in {readme_path}")
+    elif re.search(table_pattern, content, flags=re.DOTALL):
+        # Fallback 1: match the <table> directly if anchors were deleted
+        updated = re.sub(table_pattern, table_html.strip(), content, flags=re.DOTALL)
+        print(f"Fallback: matched table tag directly in {readme_path}")
+    elif re.search(header_pattern, content):
+        # Fallback 2: insert right under ## Download
+        updated = re.sub(header_pattern, r"\1" + table_html.strip() + "\n\n", content)
+        print(f"Fallback: inserted table under ## Download in {readme_path}")
     else:
-        print(f"Warning: Anchor tags not found in {readme_path}")
+        print(f"Error: Neither anchor tags, table, nor '## Download' found in {readme_path}")
         sys.exit(1)
+
+    with open(readme_path, "w", encoding="utf-8") as f:
+        f.write(updated)
+    print(f"Successfully updated {readme_path} download table to v{version}")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
