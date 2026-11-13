@@ -1,0 +1,17 @@
+# Build and packaging artifacts
+dist/
+work/
+*.tmp
+*.zip
+*.tar.gz
+*.exe
+*.dmg
+
+# Node
+node_modules/
+package-lock.json
+
+# OS metadata
+.DS_Store
+Thumbs.db
+desktop.ini

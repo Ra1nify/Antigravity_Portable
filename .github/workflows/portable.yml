@@ -1,0 +1,118 @@
+name: Auto Build Antigravity Portable
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y p7zip-full curl jq zip tar
+
+      - name: Fetch Official Manifest
+        id: official
+        run: |
+          MANIFEST_URL="https://antigravity-hub-auto-updater-974169037036.us-central1.run.app/manifest/latest-x64-win.yml"
+          MANIFEST=$(curl -sSL "$MANIFEST_URL")
+          OFFICIAL_VER=$(echo "$MANIFEST" | grep -E '^version:' | awk '{print $2}' | tr -d '\r')
+          DOWNLOAD_URL=$(echo "$MANIFEST" | grep -E 'url:' | head -n 1 | awk '{print $2}' | tr -d '\r')
+          BASE_URL=$(echo "$DOWNLOAD_URL" | sed -E 's|/[^/]+/[^/]+$||')
+          
+          echo "official_version=$OFFICIAL_VER" >> "$GITHUB_OUTPUT"
+          echo "base_url=$BASE_URL" >> "$GITHUB_OUTPUT"
+          echo "Official Latest Version: $OFFICIAL_VER"
+          echo "Upstream Base URL: $BASE_URL"
+
+      - name: Version Check Against Releases
+        id: version_check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          LATEST_TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || echo "")
+          echo "Repository Latest Tag: $LATEST_TAG"
+          echo "Official Version: ${{ steps.official.outputs.official_version }}"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Workflow triggered manually: forcing build."
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+          elif [ -z "$LATEST_TAG" ]; then
+            echo "No existing releases found. Initial build triggered."
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+          else
+            HIGHER=$(printf '%s\n%s\n' "$LATEST_TAG" "${{ steps.official.outputs.official_version }}" | sort -V | tail -n 1)
+            if [ "$HIGHER" != "$LATEST_TAG" ]; then
+              echo "New official version detected (${{ steps.official.outputs.official_version }} > $LATEST_TAG). Building."
+              echo "should_build=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "Repository is already up to date ($LATEST_TAG >= ${{ steps.official.outputs.official_version }}). Dismissing."
+              echo "should_build=false" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+      - name: Build Portable Packages
+        if: steps.version_check.outputs.should_build == 'true'
+        run: |
+          chmod +x ./scripts/build.sh
+          ./scripts/build.sh "${{ steps.official.outputs.official_version }}" "${{ steps.official.outputs.base_url }}"
+
+      - name: Publish GitHub Release
+        if: steps.version_check.outputs.should_build == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.official.outputs.official_version }}"
+          CHANGELOG_URL="https://antigravity.google/docs/changelog#rel-hub-${VERSION}"
+          
+          CHECKSUMS=$(cd dist && sha256sum * | sort)
+
+          cat << EOF > release_body.md
+          ## Google Antigravity Portable (${VERSION})
+
+          Official release repackaged with zero-footprint local redirection.
+
+          - **Official Changelog**: [Google Antigravity Docs](${CHANGELOG_URL})
+          - **Official Upstream Version**: \`${VERSION}\`
+
+          ### Packages Available
+          - **Windows (x64 / arm64)**: \`Antigravity-Portable-v${VERSION}-windows-x64.zip\`, \`Antigravity-Portable-v${VERSION}-windows-arm64.zip\`
+          - **Linux (x64 / arm64)**: \`Antigravity-Portable-v${VERSION}-linux-x64.tar.gz\`, \`Antigravity-Portable-v${VERSION}-linux-arm64.tar.gz\`
+          - **macOS (Apple Silicon / Intel)**: \`Antigravity-Portable-v${VERSION}-macOS-arm64.zip\`, \`Antigravity-Portable-v${VERSION}-macOS-x64.zip\`
+
+          ### Checksums (SHA-256)
+          \`\`\`text
+          ${CHECKSUMS}
+          \`\`\`
+
+          ### Usage & Portable Characteristics
+          1. **Zero System Pollution**: All configurations, authentication tokens, extensions, projects, and cache are strictly isolated inside the \`./data\` folder created adjacent to the application.
+          2. **No Launcher Shell Needed**: Directly launch the official executable (\`Antigravity.exe\` / \`Antigravity\` / \`Antigravity.app\`).
+          3. **macOS Gatekeeper**: If macOS reports that the application is damaged, execute \`xattr -cr Antigravity.app\` in Terminal or right-click > Open to authorize unsigned modifications.
+          EOF
+
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "Release $VERSION already exists. Updating release assets..."
+            gh release upload "$VERSION" dist/* --clobber
+            gh release edit "$VERSION" --notes-file release_body.md
+          else
+            echo "Creating new release $VERSION..."
+            gh release create "$VERSION" dist/* \
+              --title "$VERSION" \
+              --notes-file release_body.md \
+              --latest
+          fi
