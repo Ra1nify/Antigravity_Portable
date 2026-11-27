@@ -26,19 +26,19 @@ For enhanced verison, check [Gravityless](https://github.com/Ra1nify/Gravityless
   <tbody>
     <tr>
       <td align="center">
-        <a href="https://github.com/Ra1nify/Antigravity_Portable/releases/download/2.35.2/Antigravity-Portable-v2.35.2-windows-x64.zip"><b>x64 (.zip)</b></a>
+        <a href="https://github.com/Ra1nify/Antigravity_Portable/releases/download/2.36.0/Antigravity-Portable-v2.36.0-windows-x64.zip"><b>x64 (.zip)</b></a>
         <br /><br />
-        <a href="https://github.com/Ra1nify/Antigravity_Portable/releases/download/2.35.2/Antigravity-Portable-v2.35.2-windows-arm64.zip"><b>ARM64 (.zip)</b></a>
+        <a href="https://github.com/Ra1nify/Antigravity_Portable/releases/download/2.36.0/Antigravity-Portable-v2.36.0-windows-arm64.zip"><b>ARM64 (.zip)</b></a>
       </td>
       <td align="center">
-        <a href="https://github.com/Ra1nify/Antigravity_Portable/releases/download/2.35.2/Antigravity-Portable-v2.35.2-linux-x64.tar.gz"><b>x64 (.tar.gz)</b></a>
+        <a href="https://github.com/Ra1nify/Antigravity_Portable/releases/download/2.36.0/Antigravity-Portable-v2.36.0-linux-x64.tar.gz"><b>x64 (.tar.gz)</b></a>
         <br /><br />
-        <a href="https://github.com/Ra1nify/Antigravity_Portable/releases/download/2.35.2/Antigravity-Portable-v2.35.2-linux-arm64.tar.gz"><b>ARM64 (.tar.gz)</b></a>
+        <a href="https://github.com/Ra1nify/Antigravity_Portable/releases/download/2.36.0/Antigravity-Portable-v2.36.0-linux-arm64.tar.gz"><b>ARM64 (.tar.gz)</b></a>
       </td>
       <td align="center">
-        <a href="https://github.com/Ra1nify/Antigravity_Portable/releases/download/2.35.2/Antigravity-Portable-v2.35.2-macOS-arm64.zip"><b>Apple Silicon (.zip)</b></a>
+        <a href="https://github.com/Ra1nify/Antigravity_Portable/releases/download/2.36.0/Antigravity-Portable-v2.36.0-macOS-arm64.zip"><b>Apple Silicon (.zip)</b></a>
         <br /><br />
-        <a href="https://github.com/Ra1nify/Antigravity_Portable/releases/download/2.35.2/Antigravity-Portable-v2.35.2-macOS-x64.zip"><b>Intel (.zip)</b></a>
+        <a href="https://github.com/Ra1nify/Antigravity_Portable/releases/download/2.36.0/Antigravity-Portable-v2.36.0-macOS-x64.zip"><b>Intel (.zip)</b></a>
       </td>
     </tr>
   </tbody>
